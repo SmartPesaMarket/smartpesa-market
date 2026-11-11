@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { isSupabaseConfigured, supabase } from './lib/supabase.js';
 
 const sampleProducts = [
   { id: 1, title: 'The Complete Business Planner', category: 'Business', price: 18000, oldPrice: 25000, tag: 'Bestseller', type: 'PDF + Sheets', art: 'planner', icon: '▤', tone: 'lavender', description: 'Plan smarter, set clear goals and track your progress.' },
@@ -42,23 +41,20 @@ function App() {
   useEffect(() => {
     let active = true;
     async function loadProducts() {
-      if (!isSupabaseConfigured) return;
-      const { data, error } = await supabase
-        .from('products')
-        .select('id,title,description,category,price_ugx,compare_at_price_ugx,product_type,image_url')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-      if (!active) return;
-      if (error) {
-        setCatalogueError('Live catalogue is temporarily unavailable. Showing sample products.');
-        return;
-      }
-      if (data?.length) {
-        setProducts(data.map(mapDatabaseProduct));
+      try {
+        const response = await fetch('/api/products', { headers: { Accept: 'application/json' } });
+        if (!response.ok) {
+          if (response.status !== 503 && active) {
+            setCatalogueError('Live catalogue is temporarily unavailable. Showing sample products.');
+          }
+          return;
+        }
+        const data = await response.json();
+        if (!active) return;
+        setProducts(Array.isArray(data) ? data.map(mapDatabaseProduct) : []);
         setCatalogueSource('live');
-      } else {
-        setProducts([]);
-        setCatalogueSource('live');
+      } catch {
+        if (active) setCatalogueError('Connect the Cloudflare D1 catalogue to load live products. Showing sample products.');
       }
     }
     loadProducts();

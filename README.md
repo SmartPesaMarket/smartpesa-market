@@ -1,12 +1,12 @@
 # SmartPesa Market
 
-SmartPesa Market is an online marketplace offering affordable digital products to make life easier. Discover educational resources, business templates, career tools and lifestyle planners. The longer-term marketplace can expand to additional product and service categories.
+SmartPesa Market is a Uganda-focused digital marketplace offering affordable digital products under the promise **Digital Products. Smarter Living.** The approved main categories are Education, Business, Employment and Lifestyle.
 
 ## Current development status
 
-The `feature/marketplace-foundation` branch contains a responsive React + Vite storefront, a configured production build workflow, and the first Supabase database integration files. The storefront continues to show clearly illustrative sample products until Supabase is configured and real products are published.
+The `feature/marketplace-foundation` branch contains a responsive React + Vite storefront, a passing GitHub Actions production-build workflow, and the first Cloudflare D1 database/API foundation. The storefront still uses clearly illustrative sample products when the D1 catalogue endpoint is not configured.
 
-Authentication screens, live inventory management, secure checkout, payment verification, digital delivery and admin tools are not connected yet.
+Customer authentication, live administration, secure checkout, payment verification, private digital delivery and production deployment are not connected yet.
 
 ## Run locally
 
@@ -15,36 +15,34 @@ Requirements: Node.js 20 or newer and npm.
 ```bash
 npm install
 npm run dev
-```
-
-Create a local `.env` file from `.env.example` and add your Supabase project URL and publishable/anon key. These are public client configuration values; never use a service-role key in the browser.
-
-```bash
 npm run build
 npm run preview
 ```
 
-## Supabase setup
+The storefront calls `/api/products` for published catalogue items. That endpoint is a Cloudflare Pages Function and reads from the D1 binding named `DB`.
 
-1. Create a Supabase project.
-2. Open the project's SQL Editor and run `supabase/schema.sql`.
-3. Copy the project URL and publishable/anon key into `.env` using the names in `.env.example`.
-4. Add product rows to `public.products` and set `is_published` to `true` when they are ready to appear.
+## Cloudflare D1 setup
 
-The app falls back to its sample catalogue if Supabase environment values are not configured. Once configured, it reads only published products. Product file paths are private metadata; do not expose paid download files through a public bucket.
+1. Create a Cloudflare D1 database named `smartpesa-market-db`.
+2. Apply `migrations/0001_initial.sql` to the database.
+3. In Cloudflare Pages project settings, add a D1 database binding named `DB` and select that database.
+4. Add real approved products to `products` and set `is_published = 1`.
+
+For local Pages Functions development, configure the D1 binding with Wrangler and run the Pages development server. Do not commit Cloudflare account tokens or other secrets.
 
 ## Technology
 
-- React and Vite
-- Supabase JS client (catalogue read integration and database foundation)
-- PostgreSQL with row-level security policies
+- React and Vite storefront
+- Cloudflare Pages Functions for server-side API routes
+- Cloudflare D1 (SQLite) for the planned application database
 - Responsive CSS with reduced-motion support
 
 ## Security and launch principles
 
-- Keep payment-provider secrets and Supabase service-role keys server-side only.
-- Browser users can read published products and their own account/order records only.
-- Orders and order items have no browser-side write policies. Trusted server functions must validate prices and create orders.
-- Verify mobile-money payments server-side before marking orders as paid or releasing downloads.
-- Replace sample catalogue data with approved, real product listings before launch.
-- Review hosting, database and payment-provider quotas/fees before launch.
+- Keep payment-provider credentials and session secrets server-side only.
+- Never expose `private_file_key` through public catalogue endpoints.
+- Customers must only access their own account and order data.
+- Orders and payment states must be written by trusted server-side code.
+- Verify mobile-money payments with the provider before marking orders paid or releasing downloads.
+- Replace sample products with approved real listings before launch.
+- Review Cloudflare free-tier quotas and payment-provider fees before production.
