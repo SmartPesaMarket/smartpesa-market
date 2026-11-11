@@ -3,14 +3,14 @@ import { isSupabaseConfigured, supabase } from './lib/supabase.js';
 
 const sampleProducts = [
   { id: 1, title: 'The Complete Business Planner', category: 'Business', price: 18000, oldPrice: 25000, tag: 'Bestseller', type: 'PDF + Sheets', art: 'planner', icon: '▤', tone: 'lavender', description: 'Plan smarter, set clear goals and track your progress.' },
-  { id: 2, title: 'CV & Career Toolkit', category: 'Career', price: 12000, oldPrice: 16000, tag: 'Popular', type: 'Editable templates', art: 'career', icon: '✳', tone: 'mint', description: 'Stand out with polished CV, cover letter and interview tools.' },
-  { id: 3, title: 'Personal Finance Tracker', category: 'Finance', price: 15000, oldPrice: null, tag: 'New', type: 'Excel + PDF', art: 'finance', icon: '↗', tone: 'peach', description: 'Know where your money goes and build better habits.' },
+  { id: 2, title: 'CV & Employment Toolkit', category: 'Employment', price: 12000, oldPrice: 16000, tag: 'Popular', type: 'Editable templates', art: 'career', icon: '✳', tone: 'mint', description: 'Stand out with polished CV, cover letter and interview tools.' },
+  { id: 3, title: 'Personal Finance Tracker', category: 'Business', price: 15000, oldPrice: null, tag: 'New', type: 'Excel + PDF', art: 'finance', icon: '↗', tone: 'peach', description: 'Know where your money goes and build better habits.' },
   { id: 4, title: 'Study Success Bundle', category: 'Education', price: 10000, oldPrice: 14000, tag: 'Great value', type: 'Study templates', art: 'study', icon: '✎', tone: 'blue', description: 'A simple system for notes, revision and focused study.' },
   { id: 5, title: 'Social Media Content Kit', category: 'Business', price: 22000, oldPrice: null, tag: 'Creator pick', type: 'Canva templates', art: 'social', icon: '◈', tone: 'pink', description: 'Create consistent content with ready-to-customise layouts.' },
   { id: 6, title: 'Weekly Life & Habit Planner', category: 'Lifestyle', price: 8000, oldPrice: null, tag: 'Easy start', type: 'Printable PDF', art: 'life', icon: '✦', tone: 'sand', description: 'Make room for the routines and goals that matter.' }
 ];
 
-const categories = ['All products', 'Business', 'Career', 'Finance', 'Education', 'Lifestyle'];
+const categories = ['All products', 'Education', 'Business', 'Employment', 'Lifestyle'];
 const money = value => 'UGX ' + Number(value).toLocaleString('en-UG');
 
 function mapDatabaseProduct(row, index) {
@@ -183,7 +183,7 @@ function App() {
 
         <section className="about-section section-wrap" id="about">
           <div className="about-mark"><span className="brand-mark large"><span></span><span></span><span></span></span><span>SMARTER, ONE STEP AT A TIME.</span></div>
-          <div className="about-copy"><div className="eyebrow"><span className="eyebrow-dot"></span> A MARKETPLACE WITH A PURPOSE</div><h2>Make everyday<br />feel a little <em>smarter.</em></h2><p>SmartPesa Market brings useful digital products together in one place — from business and career tools to learning resources and everyday planners. Less searching. More doing.</p><a className="text-link" href="#products">Find something useful <span>→</span></a></div>
+          <div className="about-copy"><div className="eyebrow"><span className="eyebrow-dot"></span> A MARKETPLACE WITH A PURPOSE</div><h2>Make everyday<br />feel a little <em>smarter.</em></h2><p>SmartPesa Market brings useful digital products together in one place — from business and employment tools to learning resources and everyday planners. Less searching. More doing.</p><a className="text-link" href="#products">Find something useful <span>→</span></a></div>
         </section>
       </main>
 
