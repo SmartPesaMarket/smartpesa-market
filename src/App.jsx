@@ -37,6 +37,51 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [catalogueError, setCatalogueError] = useState('');
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authUser, setAuthUser] = useState(null);
+  const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(response => response.ok ? response.json() : null)
+      .then(data => { if (data?.user) setAuthUser(data.user); })
+      .catch(() => {});
+  }, []);
+
+  async function submitAuth(event) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthError('');
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      email: String(form.get('email') || '').trim(),
+      password: String(form.get('password') || ''),
+      displayName: String(form.get('displayName') || '').trim()
+    };
+    try {
+      const response = await fetch(authMode === 'register' ? '/api/auth/register' : '/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to sign in.');
+      setAuthUser(data.user);
+      setAuthOpen(false);
+      setNotice(authMode === 'register' ? 'Your account has been created.' : 'Welcome back.');
+      window.setTimeout(() => setNotice(''), 2600);
+    } catch (error) {
+      setAuthError(error.message || 'Please try again.');
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function signOut() {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    setAuthUser(null);
+    setNotice('You have signed out.');
+    window.setTimeout(() => setNotice(''), 2600);
+  }
 
   useEffect(() => {
     let active = true;
@@ -90,12 +135,30 @@ function App() {
         </nav>
         <div className="header-actions">
           <a className="seller-link" href="mailto:smartpesamarket.ug@gmail.com?subject=Selling%20on%20SmartPesa%20Market">Become a seller</a>
+          {authUser ? <button className="account-button" onClick={signOut}>Hi, {authUser.displayName.split(' ')[0]} · Sign out</button> : <button className="account-button" onClick={() => { setAuthMode('login'); setAuthError(''); setAuthOpen(true); }}>Sign in</button>}
           <button className="bag-button" onClick={() => setNotice(cart.length ? 'Your bag has ' + cart.length + (cart.length === 1 ? ' item' : ' items') + ' · Checkout is coming soon.' : 'Your bag is empty for now. Explore the collection.')}>
             <span className="bag-icon">⌑</span><span>My bag</span><b>{cart.length}</b>
           </button>
         </div>
       </header>
 
+      {authOpen && <div className="auth-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAuthOpen(false); }}>
+        <section className="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+          <button className="auth-close" onClick={() => setAuthOpen(false)} aria-label="Close">×</button>
+          <div className="eyebrow"><span className="eyebrow-dot"></span> SMARTPESA MARKET ACCOUNT</div>
+          <h2 id="auth-title">{authMode === 'register' ? 'Create your account' : 'Welcome back'}</h2>
+          <p>Keep your digital purchases and account details together.</p>
+          <form onSubmit={submitAuth}>
+            {authMode === 'register' && <label>Your name<input name="displayName" autoComplete="name" required minLength="2" maxLength="80" /></label>}
+            <label>Email address<input name="email" type="email" autoComplete="email" required maxLength="254" /></label>
+            <label>Password<input name="password" type="password" autoComplete={authMode === 'register' ? 'new-password' : 'current-password'} required minLength="10" maxLength="128" /></label>
+            {authMode === 'register' && <small>Use at least 10 characters. Keep your password private.</small>}
+            {authError && <div className="auth-error" role="alert">{authError}</div>}
+            <button className="button button-primary auth-submit" disabled={authBusy}>{authBusy ? 'Please wait…' : authMode === 'register' ? 'Create account' : 'Sign in'} <span>→</span></button>
+          </form>
+          <button className="auth-switch" onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}>{authMode === 'login' ? 'New to SmartPesa Market? Create an account' : 'Already have an account? Sign in'}</button>
+        </section>
+      </div>}
       <main>
         <section className="hero">
           <div className="hero-glow glow-one"></div><div className="hero-glow glow-two"></div>
