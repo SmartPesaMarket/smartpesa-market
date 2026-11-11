@@ -12,7 +12,7 @@ async function digest(value) {
 }
 async function passwordHash(password, salt) {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: Uint8Array.from(atob(salt), c => c.charCodeAt(0)), iterations: 310000, hash: 'SHA-256' }, key, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: Uint8Array.from(atob(salt.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - salt.length % 4) % 4)), c => c.charCodeAt(0)), iterations: 310000, hash: 'SHA-256' }, key, 256);
   return [...new Uint8Array(bits)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 function randomToken(bytes = 32) {

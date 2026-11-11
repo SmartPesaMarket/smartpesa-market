@@ -12,7 +12,7 @@ async function digest(value) {
 }
 async function passwordHash(password, salt) {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: Uint8Array.from(atob(salt), c => c.charCodeAt(0)), iterations: 310000, hash: 'SHA-256' }, key, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: Uint8Array.from(atob(salt.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - salt.length % 4) % 4)), c => c.charCodeAt(0)), iterations: 310000, hash: 'SHA-256' }, key, 256);
   return [...new Uint8Array(bits)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 function randomToken(bytes = 32) {
@@ -50,13 +50,10 @@ export async function onRequestPost({ request, env }) {
   if (!row || !row.password_hash || !row.password_hash.includes(':')) return json({ error: 'Email or password is incorrect.' }, 401);
   const [salt, savedHash] = row.password_hash.split(':');
   const candidate = await passwordHash(password, salt);
-  if (candidate.length !== savedHash.length || !crypto.subtle.timingSafeEqual) {
-    if (candidate !== savedHash) return json({ error: 'Email or password is incorrect.' }, 401);
-  } else {
-    const a = encoder.encode(candidate), b = encoder.encode(savedHash);
-    let diff = 0; for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-    if (diff !== 0) return json({ error: 'Email or password is incorrect.' }, 401);
-  }
+  const a = encoder.encode(candidate), b = encoder.encode(savedHash);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) diff |= (a[i] || 0) ^ (b[i] || 0);
+  if (diff !== 0) return json({ error: 'Email or password is incorrect.' }, 401);
   const token = await createSession(env, row.id);
   return json({ user: { id: row.id, email: row.email, displayName: row.display_name, role: row.role } }, 200, { 'Set-Cookie': cookie(token, 60 * 60 * 24 * 14) });
 }
