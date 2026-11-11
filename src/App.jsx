@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { isSupabaseConfigured, supabase } from './lib/supabase.js';
 
-const products = [
+const sampleProducts = [
   { id: 1, title: 'The Complete Business Planner', category: 'Business', price: 18000, oldPrice: 25000, tag: 'Bestseller', type: 'PDF + Sheets', art: 'planner', icon: '▤', tone: 'lavender', description: 'Plan smarter, set clear goals and track your progress.' },
   { id: 2, title: 'CV & Career Toolkit', category: 'Career', price: 12000, oldPrice: 16000, tag: 'Popular', type: 'Editable templates', art: 'career', icon: '✳', tone: 'mint', description: 'Stand out with polished CV, cover letter and interview tools.' },
   { id: 3, title: 'Personal Finance Tracker', category: 'Finance', price: 15000, oldPrice: null, tag: 'New', type: 'Excel + PDF', art: 'finance', icon: '↗', tone: 'peach', description: 'Know where your money goes and build better habits.' },
@@ -10,21 +11,66 @@ const products = [
 ];
 
 const categories = ['All products', 'Business', 'Career', 'Finance', 'Education', 'Lifestyle'];
-const money = value => 'UGX ' + value.toLocaleString('en-UG');
+const money = value => 'UGX ' + Number(value).toLocaleString('en-UG');
+
+function mapDatabaseProduct(row, index) {
+  const visual = sampleProducts[index % sampleProducts.length];
+  return {
+    ...visual,
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    price: Number(row.price_ugx),
+    oldPrice: row.compare_at_price_ugx == null ? null : Number(row.compare_at_price_ugx),
+    type: row.product_type || 'Digital product',
+    description: row.description || '',
+    imageUrl: row.image_url,
+    tag: 'Available'
+  };
+}
 
 function App() {
+  const [products, setProducts] = useState(sampleProducts);
+  const [catalogueSource, setCatalogueSource] = useState('sample');
   const [activeCategory, setActiveCategory] = useState('All products');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [catalogueError, setCatalogueError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    async function loadProducts() {
+      if (!isSupabaseConfigured) return;
+      const { data, error } = await supabase
+        .from('products')
+        .select('id,title,description,category,price_ugx,compare_at_price_ugx,product_type,image_url')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+      if (!active) return;
+      if (error) {
+        setCatalogueError('Live catalogue is temporarily unavailable. Showing sample products.');
+        return;
+      }
+      if (data?.length) {
+        setProducts(data.map(mapDatabaseProduct));
+        setCatalogueSource('live');
+      } else {
+        setProducts([]);
+        setCatalogueSource('live');
+      }
+    }
+    loadProducts();
+    return () => { active = false; };
+  }, []);
 
   const visibleProducts = useMemo(() => products.filter(product => {
     const matchesCategory = activeCategory === 'All products' || product.category === activeCategory;
     const term = search.trim().toLowerCase();
     const matchesSearch = !term || (product.title + ' ' + product.category + ' ' + product.description).toLowerCase().includes(term);
     return matchesCategory && matchesSearch;
-  }), [activeCategory, search]);
+  }), [products, activeCategory, search]);
 
   const addToCart = product => {
     setCart(current => [...current, product]);
@@ -93,6 +139,8 @@ function App() {
             <div><div className="eyebrow"><span className="eyebrow-dot"></span> THE COLLECTION</div><h2>Find your next <em>good thing.</em></h2><p>Thoughtful digital resources for the things you're working towards.</p></div>
             <a className="text-link desktop-link" href="#products">Browse all products <span>→</span></a>
           </div>
+          {catalogueError && <p className="catalogue-status" role="status">{catalogueError}</p>}
+          {catalogueSource === 'live' && products.length === 0 && <p className="catalogue-status">The live catalogue is ready. Products will appear here when published.</p>}
           <div className="catalogue-tools">
             <div className="category-list" role="group" aria-label="Filter products by category">
               {categories.map(category => <button key={category} className={activeCategory === category ? 'category-chip active' : 'category-chip'} onClick={() => setActiveCategory(category)}>{category}</button>)}
@@ -118,7 +166,7 @@ function App() {
               </div>
             </article>)}
           </div>
-          {visibleProducts.length === 0 && <div className="empty-state"><span>⌕</span><h3>No matches just yet</h3><p>Try another search or choose a different category.</p><button onClick={() => {setSearch('');setActiveCategory('All products');}}>Clear filters</button></div>}
+          {visibleProducts.length === 0 && !(catalogueSource === 'live' && products.length === 0) && <div className="empty-state"><span>⌕</span><h3>No matches just yet</h3><p>Try another search or choose a different category.</p><button onClick={() => {setSearch('');setActiveCategory('All products');}}>Clear filters</button></div>}
           <div className="catalogue-note"><span>✦</span> A growing collection of useful things. More discoveries coming soon.</div>
         </section>
 
