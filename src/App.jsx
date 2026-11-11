@@ -41,6 +41,10 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [authBusy, setAuthBusy] = useState(false);
   const [authUser, setAuthUser] = useState(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountOrders, setAccountOrders] = useState([]);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [accountError, setAccountError] = useState('');
   const [authError, setAuthError] = useState('');
 
   useEffect(() => {
@@ -73,6 +77,22 @@ function App() {
       setAuthError(error.message || 'Please try again.');
     } finally {
       setAuthBusy(false);
+    }
+  }
+
+  async function openAccount() {
+    setAccountOpen(true);
+    setAccountBusy(true);
+    setAccountError('');
+    try {
+      const response = await fetch('/api/account/orders', { headers: { Accept: 'application/json' } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to load your account.');
+      setAccountOrders(Array.isArray(data.orders) ? data.orders : []);
+    } catch (error) {
+      setAccountError(error.message || 'Unable to load your account.');
+    } finally {
+      setAccountBusy(false);
     }
   }
 
@@ -135,13 +155,26 @@ function App() {
         </nav>
         <div className="header-actions">
           <a className="seller-link" href="mailto:smartpesamarket.ug@gmail.com?subject=Selling%20on%20SmartPesa%20Market">Become a seller</a>
-          {authUser ? <button className="account-button" onClick={signOut}>Hi, {authUser.displayName.split(' ')[0]} · Sign out</button> : <button className="account-button" onClick={() => { setAuthMode('login'); setAuthError(''); setAuthOpen(true); }}>Sign in</button>}
+          {authUser ? <button className="account-button" onClick={openAccount}>My account</button> : <button className="account-button" onClick={() => { setAuthMode('login'); setAuthError(''); setAuthOpen(true); }}>Sign in</button>}
           <button className="bag-button" onClick={() => setNotice(cart.length ? 'Your bag has ' + cart.length + (cart.length === 1 ? ' item' : ' items') + ' · Checkout is coming soon.' : 'Your bag is empty for now. Explore the collection.')}>
             <span className="bag-icon">⌑</span><span>My bag</span><b>{cart.length}</b>
           </button>
         </div>
       </header>
 
+
+      {accountOpen && authUser && <div className="auth-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAccountOpen(false); }}>
+        <section className="account-panel" role="dialog" aria-modal="true" aria-labelledby="account-title">
+          <button className="auth-close" onClick={() => setAccountOpen(false)} aria-label="Close">×</button>
+          <div className="eyebrow"><span className="eyebrow-dot"></span> YOUR SMARTPESA ACCOUNT</div>
+          <h2 id="account-title">Hello, {authUser.displayName.split(' ')[0]}.</h2>
+          <p className="account-email">{authUser.email}</p>
+          <div className="account-summary"><span>ACCOUNT</span><span>ORDER HISTORY</span><strong>{authUser.role === 'admin' ? 'Administrator' : 'Customer'}</strong><strong>{accountOrders.length} orders</strong></div>
+          <h3 className="account-section-title">Your orders</h3>
+          {accountBusy ? <p className="account-empty">Loading your order history…</p> : accountError ? <p className="auth-error" role="alert">{accountError}</p> : accountOrders.length === 0 ? <div className="account-empty"><span>◇</span><b>No orders yet</b><small>Your purchases will appear here after checkout is available.</small></div> : <div className="account-order-list">{accountOrders.map(order => <article className="account-order" key={order.id}><div><b>Order {order.id.slice(0, 8).toUpperCase()}</b><small>{new Date(order.createdAt).toLocaleDateString('en-UG')}</small>{order.items.map(item => <small key={item.id}>{item.quantity} × {item.title}</small>)}</div><div><strong>{money(order.totalUgx)}</strong><span className={'order-status status-' + order.status}>{order.status}</span></div></article>)}</div>}
+          <div className="account-actions"><button className="account-signout" onClick={signOut}>Sign out</button><button className="button button-primary" onClick={() => setAccountOpen(false)}>Continue shopping</button></div>
+        </section>
+      </div>}
       {authOpen && <div className="auth-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAuthOpen(false); }}>
         <section className="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
           <button className="auth-close" onClick={() => setAuthOpen(false)} aria-label="Close">×</button>
