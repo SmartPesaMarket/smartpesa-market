@@ -139,10 +139,15 @@ function App() {
     return matchesCategory && matchesSearch;
   }), [products, activeCategory, search]);
 
-  const cartTotal = cart.reduce((sum, product) => sum + Number(product.price || 0), 0);
+  const cartTotal = cart.reduce((sum, product) => sum + Number(product.price || 0) * product.quantity, 0);
 
   const addToCart = product => {
-    setCart(current => [...current, product]);
+    setCart(current => {
+      const existing = current.find(item => String(item.id) === String(product.id));
+      return existing
+        ? current.map(item => String(item.id) === String(product.id) ? { ...item, quantity: item.quantity + 1 } : item)
+        : [...current, { ...product, quantity: 1 }];
+    });
     setNotice(product.title + ' added to your bag');
     window.setTimeout(() => setNotice(''), 2600);
   };
@@ -177,9 +182,9 @@ function App() {
           <div className="eyebrow"><span className="eyebrow-dot"></span> YOUR SELECTION</div>
           <h2 id="cart-title">Your bag <em>({cart.length})</em></h2>
           {cart.length === 0 ? <div className="account-empty"><span>◇</span><b>Your bag is empty</b><small>Explore the collection and add something useful.</small></div> :
-            <div className="cart-items">{cart.map((product, index) => <article className="cart-item" key={index}>
-              <div><b>{product.title}</b><small>{product.category} · {product.type}</small><strong>{money(product.price)}</strong></div>
-              <button className="cart-remove" onClick={() => setCart(items => items.filter((_, itemIndex) => itemIndex !== index))} aria-label={"Remove " + product.title}>Remove</button>
+            <div className="cart-items">{cart.map(product => <article className="cart-item" key={product.id}>
+              <div><b>{product.title}</b><small>{product.category} · {product.type}</small><strong>{money(product.price * product.quantity)}</strong></div>
+              <div className="cart-item-controls"><div className="quantity-control"><button onClick={() => setCart(items => items.map(item => String(item.id) === String(product.id) ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item))} aria-label="Decrease quantity">−</button><span>{product.quantity}</span><button onClick={() => setCart(items => items.map(item => String(item.id) === String(product.id) ? { ...item, quantity: item.quantity + 1 } : item))} aria-label="Increase quantity">＋</button></div><button className="cart-remove" onClick={() => setCart(items => items.filter(item => String(item.id) !== String(product.id)))} aria-label={"Remove " + product.title}>Remove</button></div>
             </article>)}</div>}
           <div className="cart-total"><span>Subtotal</span><strong>{money(cartTotal)}</strong></div>
           <p className="cart-notice">Checkout and secure digital delivery are still being built. No payment will be taken at this stage.</p>
