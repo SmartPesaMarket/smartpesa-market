@@ -167,3 +167,10 @@ html{scroll-padding-top:100px}body{background:#071329;color:#f5f8ff}.site-shell{
 .quantity-control{display:flex;align-items:center;gap:9px;padding:4px;border:1px solid #ffffff2b;border-radius:8px;color:#fff}
 .quantity-control button{width:25px;height:25px;border:0;border-radius:5px;background:#123d70;color:#fff;font-size:16px;cursor:pointer}
 .quantity-control span{min-width:14px;text-align:center;font-size:12px}
+
+
+.checkout-success{display:flex;flex-direction:column;gap:10px;padding:18px;margin:18px 0;border:1px solid rgba(8,123,255,.35);border-radius:16px;background:rgba(8,123,255,.07)}
+.checkout-success b{font-size:17px;color:#087bff}
+.checkout-success span,.checkout-success small{color:#687386;font-size:13px}
+.checkout-success strong{font-size:24px;color:#071329}
+.checkout-success .button{align-self:flex-start;margin-top:6px}
