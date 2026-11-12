@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const sampleProducts = [
   { id: 1, title: 'The Complete Business Planner', category: 'Business', price: 18000, oldPrice: 25000, tag: 'Bestseller', type: 'PDF + Sheets', art: 'planner', icon: '▤', tone: 'lavender', description: 'Plan smarter, set clear goals and track your progress.' },
@@ -46,6 +46,11 @@ function App() {
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountError, setAccountError] = useState('');
   const [authError, setAuthError] = useState('');
+  const [heroRotation, setHeroRotation] = useState({ x: -7, y: -18 });
+  const heroDrag = useRef(null);
+  const handleHeroPointerDown = event => { heroDrag.current = { x: event.clientX, y: event.clientY, rotation: heroRotation }; event.currentTarget.setPointerCapture(event.pointerId); };
+  const handleHeroPointerMove = event => { if (!heroDrag.current) return; const dx = event.clientX - heroDrag.current.x; const dy = event.clientY - heroDrag.current.y; setHeroRotation({ x: Math.max(-24, Math.min(18, heroDrag.current.rotation.x - dy * .22)), y: Math.max(-38, Math.min(38, heroDrag.current.rotation.y + dx * .28)) }); };
+  const handleHeroPointerUp = () => { heroDrag.current = null; };
 
   useEffect(() => {
     fetch('/api/auth/me').then(response => response.ok ? response.json() : null)
@@ -205,17 +210,28 @@ function App() {
             </div>
             <div className="hero-proof"><div className="proof-avatars"><span>✦</span><span>✳</span><span>◈</span></div><span>Small tools. Meaningful progress.</span></div>
           </div>
-          <div className="hero-art" aria-label="A collection of digital productivity products">
-            <div className="orbit orbit-a"></div><div className="orbit orbit-b"></div>
-            <div className="float-card mini-card card-top"><span className="mini-icon">✧</span><span><b>Make it happen</b><small>Your next great idea</small></span></div>
-            <div className="showcase-card">
-              <div className="showcase-top"><span>YOUR NEXT CHAPTER</span><span className="showcase-dots">•••</span></div>
-              <div className="showcase-title">Plan with<br /><i>purpose.</i></div>
-              <div className="showcase-lines"><span></span><span></span><span></span></div>
-              <div className="showcase-bottom"><span>SMART PLANNER / 01</span><span className="showcase-stamp">S</span></div>
+          <div className="hero-art hero-stage" aria-label="Interactive three-dimensional digital product showcase">
+            <div className="stage-light"></div><div className="stage-ring ring-one"></div><div className="stage-ring ring-two"></div>
+            <div className="hero-device-wrap">
+              <div className="hero-device" style={{ transform: `rotateX(${heroRotation.x}deg) rotateY(${heroRotation.y}deg)` }} onPointerDown={handleHeroPointerDown} onPointerMove={handleHeroPointerMove} onPointerUp={handleHeroPointerUp} onPointerCancel={handleHeroPointerUp} onLostPointerCapture={handleHeroPointerUp}>
+                <div className="device-screen-shell">
+                  <div className="device-screen">
+                    <div className="screen-topline"><span className="screen-brand">SP<span> / MARKET</span></span><span className="screen-menu">COLLECTION&nbsp;&nbsp; ✦ &nbsp;&nbsp; 2026</span></div>
+                    <div className="screen-copy"><small>TOOLS FOR YOUR NEXT MOVE</small><b>Make your<br/><i>ideas happen.</i></b><span>Discover the digital edge.</span></div>
+                    <div className="screen-product">
+                      <div className="screen-book-back"></div><div className="screen-book"><span>SMARTPESA / 01</span><b>THE<br/><i>GROWTH</i><br/>EDIT.</b><small>PLAN · BUILD · GROW</small></div>
+                      <div className="screen-disc"></div>
+                    </div>
+                    <div className="screen-footer"><span>CURATED DIGITAL GOODS</span><span>SCROLL TO EXPLORE ↓</span></div>
+                  </div>
+                </div>
+                <div className="device-hinge"></div>
+                <div className="device-base"><div className="device-keyboard"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div className="device-trackpad"></div></div>
+              </div>
             </div>
-            <div className="float-card mini-card card-bottom"><span className="growth-icon">↗</span><span><b>Progress, not pressure.</b><small>One step at a time</small></span></div>
-            <div className="hero-orb"><span>✦</span></div>
+            <div className="stage-float float-one"><span>✦</span><b>Digital, reimagined.</b><small>Tools that move you forward</small></div>
+            <div className="stage-float float-two"><span className="float-price">UGX</span><b>Smart value</b><small>Made for everyday progress</small></div>
+            <div className="stage-caption"><span className="caption-dot"></span> DRAG TO EXPLORE <span className="caption-line"></span> 3D PRODUCT STUDIO</div>
           </div>
           <div className="hero-bottom"><span>DESIGNED FOR YOUR EVERYDAY</span><span className="hero-bottom-line"></span><span>LEARN · CREATE · GROW</span></div>
         </section>
