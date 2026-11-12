@@ -35,6 +35,9 @@ function App() {
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
+  const [createdOrder, setCreatedOrder] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [catalogueError, setCatalogueError] = useState('');
@@ -141,6 +144,27 @@ function App() {
 
   const cartTotal = cart.reduce((sum, product) => sum + Number(product.price || 0) * product.quantity, 0);
 
+  async function createOrder() {
+    if (catalogueSource !== 'live' || cart.length === 0) return;
+    if (!authUser) {
+      setCartOpen(false); setAuthMode('login'); setAuthError(''); setAuthOpen(true);
+      setNotice('Sign in to continue with your order.');
+      window.setTimeout(() => setNotice(''), 3000); return;
+    }
+    setCheckoutBusy(true); setCheckoutError('');
+    try {
+      const response = await fetch('/api/checkout/create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ items: cart.map(item => ({ productId: String(item.id), quantity: item.quantity })) })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'We could not create your order.');
+      setCreatedOrder(data.order); setCart([]);
+      setAccountOrders(current => [{ id: data.order.id, status: data.order.status, totalUgx: data.order.totalUgx, createdAt: new Date().toISOString(), items: data.order.items.map((item, index) => ({ id: item.productId + '-' + index, title: item.title, quantity: item.quantity })) }, ...current]);
+    } catch (error) { setCheckoutError(error.message || 'Please try again.'); }
+    finally { setCheckoutBusy(false); }
+  }
+
   const addToCart = product => {
     setCart(current => {
       const existing = current.find(item => String(item.id) === String(product.id));
@@ -181,14 +205,21 @@ function App() {
           <button className="auth-close" onClick={() => setCartOpen(false)} aria-label="Close bag">×</button>
           <div className="eyebrow"><span className="eyebrow-dot"></span> YOUR SELECTION</div>
           <h2 id="cart-title">Your bag <em>({cart.length})</em></h2>
+          {createdOrder && <div className="checkout-success" role="status">
+            <b>Order created successfully</b><span>Reference: {createdOrder.id.slice(0, 8).toUpperCase()}</span>
+            <strong>{money(createdOrder.totalUgx)}</strong>
+            <small>Status: pending. Payment is not available yet, and no money has been taken.</small>
+            <button className="button button-primary" onClick={() => { setCartOpen(false); setCreatedOrder(null); if (authUser) openAccount(); }}>View my orders</button>
+          </div>}
           {cart.length === 0 ? <div className="account-empty"><span>◇</span><b>Your bag is empty</b><small>Explore the collection and add something useful.</small></div> :
             <div className="cart-items">{cart.map(product => <article className="cart-item" key={product.id}>
               <div><b>{product.title}</b><small>{product.category} · {product.type}</small><strong>{money(product.price * product.quantity)}</strong></div>
               <div className="cart-item-controls"><div className="quantity-control"><button onClick={() => setCart(items => items.map(item => String(item.id) === String(product.id) ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item))} aria-label="Decrease quantity">−</button><span>{product.quantity}</span><button onClick={() => setCart(items => items.map(item => String(item.id) === String(product.id) ? { ...item, quantity: item.quantity + 1 } : item))} aria-label="Increase quantity">＋</button></div><button className="cart-remove" onClick={() => setCart(items => items.filter(item => String(item.id) !== String(product.id)))} aria-label={"Remove " + product.title}>Remove</button></div>
             </article>)}</div>}
           <div className="cart-total"><span>Subtotal</span><strong>{money(cartTotal)}</strong></div>
-          <p className="cart-notice">Checkout and secure digital delivery are still being built. No payment will be taken at this stage.</p>
-          <div className="account-actions"><button className="account-signout" onClick={() => { setCart([]); }}>Clear bag</button><button className="button button-primary" onClick={() => { setCartOpen(false); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }}>Continue exploring</button></div>
+          {checkoutError && <p className="auth-error" role="alert">{checkoutError}</p>}
+          {!createdOrder && <p className="cart-notice">{catalogueSource === 'live' ? 'Create a pending order from published products. Payment and digital delivery are not enabled yet.' : 'Checkout is available once the live product catalogue is connected. Sample products cannot be purchased.'} No payment will be taken.</p>}
+          <div className="account-actions"><button className="account-signout" onClick={() => { setCart([]); setCreatedOrder(null); }}>Clear bag</button>{catalogueSource === 'live' ? <button className="button button-primary" disabled={checkoutBusy || cart.length === 0 || !!createdOrder} onClick={createOrder}>{checkoutBusy ? 'Creating order…' : !authUser ? 'Sign in to checkout' : 'Create pending order'}</button> : <button className="button button-primary" onClick={() => { setCartOpen(false); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }}>Continue exploring</button>}</div>
         </section>
       </div>}
       {accountOpen && authUser && <div className="auth-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAccountOpen(false); }}>
