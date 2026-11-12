@@ -34,6 +34,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState('All products');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [catalogueError, setCatalogueError] = useState('');
@@ -138,6 +139,8 @@ function App() {
     return matchesCategory && matchesSearch;
   }), [products, activeCategory, search]);
 
+  const cartTotal = cart.reduce((sum, product) => sum + Number(product.price || 0), 0);
+
   const addToCart = product => {
     setCart(current => [...current, product]);
     setNotice(product.title + ' added to your bag');
@@ -161,13 +164,28 @@ function App() {
         <div className="header-actions">
           <a className="seller-link" href="mailto:smartpesamarket.ug@gmail.com?subject=Selling%20on%20SmartPesa%20Market">Become a seller</a>
           {authUser ? <button className="account-button" onClick={openAccount}>My account</button> : <button className="account-button" onClick={() => { setAuthMode('login'); setAuthError(''); setAuthOpen(true); }}>Sign in</button>}
-          <button className="bag-button" onClick={() => setNotice(cart.length ? 'Your bag has ' + cart.length + (cart.length === 1 ? ' item' : ' items') + ' · Checkout is coming soon.' : 'Your bag is empty for now. Explore the collection.')}>
+          <button className="bag-button" onClick={() => setCartOpen(true)}>
             <span className="bag-icon">⌑</span><span>My bag</span><b>{cart.length}</b>
           </button>
         </div>
       </header>
 
 
+      {cartOpen && <div className="auth-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setCartOpen(false); }}>
+        <section className="account-panel cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+          <button className="auth-close" onClick={() => setCartOpen(false)} aria-label="Close bag">×</button>
+          <div className="eyebrow"><span className="eyebrow-dot"></span> YOUR SELECTION</div>
+          <h2 id="cart-title">Your bag <em>({cart.length})</em></h2>
+          {cart.length === 0 ? <div className="account-empty"><span>◇</span><b>Your bag is empty</b><small>Explore the collection and add something useful.</small></div> :
+            <div className="cart-items">{cart.map((product, index) => <article className="cart-item" key={index}>
+              <div><b>{product.title}</b><small>{product.category} · {product.type}</small><strong>{money(product.price)}</strong></div>
+              <button className="cart-remove" onClick={() => setCart(items => items.filter((_, itemIndex) => itemIndex !== index))} aria-label={"Remove " + product.title}>Remove</button>
+            </article>)}</div>}
+          <div className="cart-total"><span>Subtotal</span><strong>{money(cartTotal)}</strong></div>
+          <p className="cart-notice">Checkout and secure digital delivery are still being built. No payment will be taken at this stage.</p>
+          <div className="account-actions"><button className="account-signout" onClick={() => { setCart([]); }}>Clear bag</button><button className="button button-primary" onClick={() => { setCartOpen(false); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }}>Continue exploring</button></div>
+        </section>
+      </div>}
       {accountOpen && authUser && <div className="auth-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAccountOpen(false); }}>
         <section className="account-panel" role="dialog" aria-modal="true" aria-labelledby="account-title">
           <button className="auth-close" onClick={() => setAccountOpen(false)} aria-label="Close">×</button>
